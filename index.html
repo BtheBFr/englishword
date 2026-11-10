@@ -87,10 +87,18 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s, opacity 0.3s;
             box-sizing: border-box;
         }
-        .btn:hover { background-color: var(--primary-hover); }
+        .btn:hover:not(:disabled) { background-color: var(--primary-hover); }
+        
+        /* Стили для заблокированной кнопки */
+        .btn:disabled {
+            background-color: var(--input-border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         
         .btn-share { background-color: var(--success); margin-top: 20px; }
         .btn-share:hover { background-color: #27ae60; }
@@ -117,6 +125,11 @@
         input[type="text"]:focus {
             border-color: var(--primary);
             outline: none;
+        }
+        input[type="text"]:disabled {
+            background-color: var(--result-bg);
+            color: var(--text-muted);
+            cursor: not-allowed;
         }
 
         .word-display {
@@ -220,7 +233,8 @@
         <div class="progress" id="progress"></div>
         <div class="word-display" id="question-text"></div>
         <input type="text" id="answer-input" placeholder="Введите перевод..." autocomplete="off">
-        <button class="btn" onclick="checkAnswer()">Проверить</button>
+        <!-- Добавили id="check-btn" -->
+        <button class="btn" id="check-btn" onclick="checkAnswer()" disabled>Проверить</button>
         <div class="feedback" id="feedback"></div>
     </div>
 
@@ -307,9 +321,14 @@
     let currentIndex = 0;
     let score = 0;
     let mistakes = [];
+    
+    // Флаг блокировки, чтобы нельзя было нажать кнопку дважды
+    let isLocked = false; 
+    
+    const answerInput = document.getElementById('answer-input');
+    const checkBtn = document.getElementById('check-btn');
 
     // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-    // Делает первую букву заглавной
     function capitalizeFirstLetter(string) {
         if (!string) return string;
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -334,18 +353,34 @@
         return Array.from(valid);
     }
 
+    // --- СЛУШАТЕЛИ ВВОДА (ЧТОБЫ КНОПКА БЛОКИРОВАЛАСЬ, ЕСЛИ ПУСТО) ---
+    answerInput.addEventListener('input', function() {
+        // Если поле пустое или идет проверка, кнопка выключена
+        if (this.value.trim() === '' || isLocked) {
+            checkBtn.disabled = true;
+        } else {
+            checkBtn.disabled = false;
+        }
+    });
+
+    answerInput.addEventListener('keypress', function (e) {
+        // Если нажат Enter, и кнопка активна (поле не пустое, нет блокировки)
+        if (e.key === 'Enter' && !checkBtn.disabled && !isLocked) {
+            checkAnswer();
+        }
+    });
+
     // --- ЛОГИКА СЛОВАРЯ ---
     function showDictionary() {
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('dictionary-screen').classList.remove('hidden');
         
         const listEl = document.getElementById('dict-list');
-        listEl.innerHTML = ''; // Очищаем на всякий случай
+        listEl.innerHTML = ''; 
         
         dictionary.forEach(item => {
             const div = document.createElement('div');
             div.className = 'dict-item';
-            // Делаем первую букву большой для красоты
             const enCap = capitalizeFirstLetter(item.en);
             const ruCap = capitalizeFirstLetter(item.ru);
             div.innerHTML = `<span class="dict-en">${enCap}</span> — <span class="dict-ru">${ruCap}</span>`;
@@ -361,10 +396,11 @@
     // --- ЛОГИКА ИГРЫ ---
     function startGame(mode) {
         currentMode = mode;
-        questions = [...dictionary].sort(() => Math.random() - 0.5); // Перемешать
+        questions = [...dictionary].sort(() => Math.random() - 0.5);
         currentIndex = 0;
         score = 0;
         mistakes = [];
+        isLocked = false;
 
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-screen').classList.remove('hidden');
@@ -377,27 +413,37 @@
             return;
         }
 
+        // Разблокируем интерфейс для нового вопроса
+        isLocked = false;
+        
         document.getElementById('feedback').textContent = '';
-        document.getElementById('answer-input').value = '';
-        document.getElementById('answer-input').focus();
+        answerInput.value = '';
+        answerInput.disabled = false; 
+        checkBtn.disabled = true; // Изначально кнопка выключена, т.к. поле пустое
+        answerInput.focus();
+        
         document.getElementById('progress').textContent = `Вопрос ${currentIndex + 1} из ${questions.length}`;
 
         const q = questions[currentIndex];
         
         if (currentMode === 'ru-en') {
             const displayRu = q.ru.replace(/\s+либо\s+/g, ' / ');
-            // Делаем первую букву заглавной
             document.getElementById('question-text').textContent = capitalizeFirstLetter(displayRu);
         } else {
-            // Делаем первую букву заглавной
             document.getElementById('question-text').textContent = capitalizeFirstLetter(q.en);
         }
     }
 
     function checkAnswer() {
-        const input = document.getElementById('answer-input');
-        const userAnswer = input.value.trim();
+        // Защита: если уже идет проверка или поле пустое, ничего не делаем
+        if (isLocked) return;
+        const userAnswer = answerInput.value.trim();
         if (!userAnswer) return;
+
+        // Блокируем всё, чтобы нельзя было нажать еще раз во время паузы
+        isLocked = true;
+        answerInput.disabled = true;
+        checkBtn.disabled = true;
 
         const q = questions[currentIndex];
         const normUser = normalize(userAnswer);
@@ -406,11 +452,11 @@
 
         if (currentMode === 'ru-en') {
             isCorrect = (normUser === normalize(q.en));
-            correctDisplay = capitalizeFirstLetter(q.en); // Для вывода с большой буквы
+            correctDisplay = capitalizeFirstLetter(q.en); 
         } else {
             const validAnswers = getValidRussianAnswers(q.ru);
             isCorrect = validAnswers.includes(normUser);
-            correctDisplay = capitalizeFirstLetter(q.ru); // Для вывода с большой буквы
+            correctDisplay = capitalizeFirstLetter(q.ru); 
         }
 
         const feedbackEl = document.getElementById('feedback');
@@ -431,18 +477,11 @@
 
         currentIndex++;
         
+        // Ждем 1.5 секунды и загружаем следующий
         setTimeout(() => {
             loadQuestion();
         }, 1500);
     }
-
-    document.getElementById('answer-input').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            if (document.getElementById('feedback').textContent === '') {
-                checkAnswer();
-            }
-        }
-    });
 
     function showResults() {
         document.getElementById('game-screen').classList.add('hidden');
