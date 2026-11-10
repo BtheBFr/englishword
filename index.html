@@ -9,10 +9,29 @@
             --bg: #f0f2f5;
             --card-bg: #ffffff;
             --text: #1a1a1a;
+            --text-muted: #666666;
             --primary: #4a90e2;
+            --primary-hover: #357abd;
             --success: #2ecc71;
             --error: #e74c3c;
+            --input-border: #dddddd;
+            --result-bg: #f9f9f9;
         }
+
+        /* Темная тема */
+        body.dark {
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --primary: #64b5f6;
+            --primary-hover: #42a5f5;
+            --success: #81c784;
+            --error: #e57373;
+            --input-border: #444444;
+            --result-bg: #2d2d2d;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg);
@@ -24,7 +43,9 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
         }
+
         .container {
             background-color: var(--card-bg);
             padding: 30px;
@@ -32,9 +53,28 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 500px;
+            position: relative;
+            transition: background-color 0.3s;
         }
+
+        /* Кнопка переключения темы */
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            transition: transform 0.3s;
+        }
+        .theme-toggle:hover { transform: scale(1.1); }
+
         h1, h2 { text-align: center; margin-top: 0; }
         .hidden { display: none !important; }
+        
         .btn {
             display: block;
             width: 100%;
@@ -43,32 +83,35 @@
             border: none;
             border-radius: 8px;
             background-color: var(--primary);
-            color: white;
+            color: #fff;
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
             transition: background 0.3s;
+            box-sizing: border-box;
         }
-        .btn:hover { background-color: #357abd; }
-        .btn-outline {
-            background: transparent;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-        }
-        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn:hover { background-color: var(--primary-hover); }
+        
+        .btn-share { background-color: var(--success); margin-top: 20px; }
+        .btn-share:hover { background-color: #27ae60; }
+
         input[type="text"] {
             width: 100%;
             padding: 15px;
             margin: 10px 0;
-            border: 2px solid #ddd;
+            border: 2px solid var(--input-border);
             border-radius: 8px;
             font-size: 16px;
             box-sizing: border-box;
+            background-color: transparent;
+            color: var(--text);
             transition: border-color 0.3s;
         }
         input[type="text"]:focus {
             border-color: var(--primary);
             outline: none;
         }
+
         .word-display {
             font-size: 24px;
             font-weight: bold;
@@ -76,13 +119,15 @@
             margin: 20px 0;
             color: var(--primary);
         }
+
         .feedback { text-align: center; font-weight: bold; margin: 15px 0; height: 20px; }
         .feedback.success { color: var(--success); }
         .feedback.error { color: var(--error); }
-        .progress { text-align: center; color: #777; margin-bottom: 15px; }
-        .results-list { text-align: left; max-height: 300px; overflow-y: auto; margin-bottom: 20px;}
+        .progress { text-align: center; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .results-list { text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 10px;}
         .result-item {
-            background: #f9f9f9;
+            background: var(--result-bg);
             padding: 10px;
             margin-bottom: 8px;
             border-radius: 6px;
@@ -90,14 +135,45 @@
         }
         .result-item .correct { color: var(--success); font-weight: bold; }
         .result-item .yours { color: var(--error); text-decoration: line-through; }
+
+        /* Стили для модального окна "Поделиться" (для ПК) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content {
+            background: var(--card-bg); padding: 25px; border-radius: 12px;
+            width: 90%; max-width: 320px; text-align: center;
+            transform: translateY(20px); transition: transform 0.3s;
+            color: var(--text);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .social-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .social-btn {
+            padding: 12px; border-radius: 8px; text-decoration: none;
+            color: white !important; font-weight: bold; display: flex; align-items: center; justify-content: center;
+            font-size: 15px; border: none; cursor: pointer; transition: 0.2s;
+        }
+        .social-btn:hover { opacity: 0.9; }
+        .tg { background: #0088cc; }
+        .wa { background: #25D366; }
+        .vk { background: #4C75A3; }
+        .copy { background: #333; }
+        .close-modal { background: var(--input-border); color: var(--text) !important; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌙</button>
+
     <div id="start-screen">
         <h1>Тренажер слов</h1>
-        <p style="text-align: center; color: #666;">Выберите режим для начала</p>
+        <p style="text-align: center; color: var(--text-muted);">Выберите режим для начала</p>
         <button class="btn" onclick="startGame('ru-en')">Русский ➔ Английский</button>
         <button class="btn" onclick="startGame('en-ru')">Английский ➔ Русский</button>
     </div>
@@ -113,12 +189,51 @@
     <div id="result-screen" class="hidden">
         <h2>Результаты</h2>
         <div class="word-display" id="score-text"></div>
+        
+        <button class="btn btn-share" onclick="shareResult()">📤 Поделиться результатом</button>
+
         <div class="results-list" id="mistakes-list"></div>
         <button class="btn" onclick="location.reload()">Пройти заново</button>
     </div>
 </div>
 
+<!-- Модальное окно для ПК -->
+<div class="modal-overlay" id="share-modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0;">Поделиться результатом</h3>
+        <p style="font-size: 14px; color:var(--text-muted);">Отправьте друзьям свой результат!</p>
+        <div class="social-btns">
+            <a href="#" class="social-btn tg" id="share-tg" target="_blank">Telegram</a>
+            <a href="#" class="social-btn wa" id="share-wa" target="_blank">WhatsApp</a>
+            <a href="#" class="social-btn vk" id="share-vk" target="_blank">ВКонтакте</a>
+            <button class="social-btn copy" id="share-copy" onclick="copyToClipboard()">Скопировать текст</button>
+            <button class="social-btn close-modal" onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // --- ЛОГИКА ТЕМНОЙ ТЕМЫ ---
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    
+    // Проверяем сохраненную тему или системные настройки
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark');
+        themeToggleBtn.textContent = '☀️';
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark');
+        if (document.body.classList.contains('dark')) {
+            localStorage.setItem('theme', 'dark');
+            themeToggleBtn.textContent = '☀️';
+        } else {
+            localStorage.setItem('theme', 'light');
+            themeToggleBtn.textContent = '🌙';
+        }
+    }
+
+    // --- ЛОГИКА ИГРЫ ---
     const dictionary = [
         { en: "author", ru: "автор либо писатель" },
         { en: "traffic warden", ru: "регулировщик дорожного движения" },
@@ -155,33 +270,28 @@
     let score = 0;
     let mistakes = [];
 
-    // Очистка текста от регистра, знаков препинания и сортировка слов
     function normalize(text) {
         return text.toLowerCase()
-                   .replace(/[^\w\sа-яё]/g, ' ') // Оставляем только буквы и пробелы
-                   .split(/\s+/)                 // Разделяем на слова
-                   .filter(w => w.length > 0)    // Убираем пустые элементы
-                   .sort()                       // Сортируем (для "стол парта" = "парта стол")
-                   .filter((v, i, a) => a.indexOf(v) === i) // Убираем дубликаты
+                   .replace(/[^\w\sа-яё]/g, ' ') 
+                   .split(/\s+/)                 
+                   .filter(w => w.length > 0)    
+                   .sort()                       
+                   .filter((v, i, a) => a.indexOf(v) === i) 
                    .join(' ');
     }
 
-    // Генерация всех правильных вариантов для русского слова
     function getValidRussianAnswers(ruText) {
         let cleanRu = ruText.replace(/\s+либо\s+/g, ', ').replace(/\s+или\s+/g, ', ');
         let parts = cleanRu.split(',').map(p => p.trim());
         let valid = new Set();
-        
         parts.forEach(p => valid.add(normalize(p)));
-        if (parts.length > 1) {
-            valid.add(normalize(parts.join(' ')));
-        }
+        if (parts.length > 1) valid.add(normalize(parts.join(' ')));
         return Array.from(valid);
     }
 
     function startGame(mode) {
         currentMode = mode;
-        questions = [...dictionary].sort(() => Math.random() - 0.5); // Перемешать
+        questions = [...dictionary].sort(() => Math.random() - 0.5);
         currentIndex = 0;
         score = 0;
         mistakes = [];
@@ -248,13 +358,11 @@
 
         currentIndex++;
         
-        // Задержка перед следующим вопросом, чтобы успеть увидеть ответ
         setTimeout(() => {
             loadQuestion();
         }, 1500);
     }
 
-    // Обработка нажатия Enter
     document.getElementById('answer-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             if (document.getElementById('feedback').textContent === '') {
@@ -290,9 +398,57 @@
                 listEl.appendChild(div);
             });
         } else {
-            listEl.innerHTML = '<p style="text-align:center; color: #2ecc71; font-weight: bold;">Идеальный результат! Ошибок нет.</p>';
+            listEl.innerHTML = '<p style="text-align:center; color: var(--success); font-weight: bold;">Идеальный результат! Ошибок нет.</p>';
         }
     }
+
+    // --- ЛОГИКА ПОДЕЛИТЬСЯ ---
+    function shareResult() {
+        const siteUrl = window.location.href;
+        const resultText = `Я прошел тест на тренажере английских слов и получил результат ${score}/${questions.length}! Попробуй и ты:`;
+        const fullText = `${resultText} ${siteUrl}`;
+
+        // Если это мобильный телефон и поддерживается Web Share API
+        if (navigator.share) {
+            navigator.share({
+                title: 'Мой результат в тренажере слов',
+                text: resultText,
+                url: siteUrl
+            }).catch((error) => console.log('Ошибка шаринга:', error));
+        } else {
+            // Для ПК открываем модальное окно
+            document.getElementById('share-modal').classList.add('active');
+            
+            // Настраиваем ссылки для соцсетей
+            const encodedText = encodeURIComponent(fullText);
+            document.getElementById('share-tg').href = `https://t.me/share/url?url=${encodeURIComponent(siteUrl)}&text=${encodeURIComponent(resultText)}`;
+            document.getElementById('share-wa').href = `https://api.whatsapp.com/send?text=${encodedText}`;
+            document.getElementById('share-vk').href = `https://vk.com/share.php?url=${encodeURIComponent(siteUrl)}&title=${encodeURIComponent(resultText)}`;
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('share-modal').classList.remove('active');
+    }
+
+    function copyToClipboard() {
+        const siteUrl = window.location.href;
+        const fullText = `Я прошел тест на тренажере английских слов и получил результат ${score}/${questions.length}! Попробуй и ты: ${siteUrl}`;
+        
+        navigator.clipboard.writeText(fullText).then(() => {
+            const btn = document.getElementById('share-copy');
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Скопировано!';
+            setTimeout(() => { btn.textContent = originalText; }, 2000);
+        }).catch(err => {
+            alert('Не удалось скопировать текст');
+        });
+    }
+
+    // Закрытие модального окна по клику вне его
+    document.getElementById('share-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
 </script>
 </body>
 </html>
