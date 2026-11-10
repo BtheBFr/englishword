@@ -92,7 +92,6 @@
         }
         .btn:hover:not(:disabled) { background-color: var(--primary-hover); }
         
-        /* Стили для заблокированной кнопки */
         .btn:disabled {
             background-color: var(--input-border);
             color: var(--text-muted);
@@ -100,8 +99,15 @@
             opacity: 0.7;
         }
         
-        .btn-share { background-color: var(--success); margin-top: 20px; }
-        .btn-share:hover { background-color: #27ae60; }
+        .btn-share { background-color: var(--success); }
+        .btn-share:hover:not(:disabled) { background-color: #27ae60; }
+        
+        .btn-sm {
+            width: auto;
+            padding: 8px 12px;
+            margin: 0;
+            font-size: 14px;
+        }
         
         .btn-outline {
             background-color: transparent;
@@ -143,7 +149,16 @@
         .feedback { text-align: center; font-weight: bold; margin: 15px 0; height: 20px; }
         .feedback.success { color: var(--success); }
         .feedback.error { color: var(--error); }
-        .progress { text-align: center; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .top-bar {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--input-border);
+            padding-bottom: 10px;
+        }
+        .progress { color: var(--text-muted); font-weight: bold; }
         
         .results-list { text-align: left; max-height: 250px; overflow-y: auto; margin-bottom: 10px;}
         .result-item {
@@ -230,10 +245,14 @@
 
     <!-- Экран игры -->
     <div id="game-screen" class="hidden">
-        <div class="progress" id="progress"></div>
+        <!-- Верхняя панель с прогрессом и кнопкой поделиться -->
+        <div class="top-bar">
+            <div class="progress" id="progress"></div>
+            <button class="btn btn-sm btn-share" onclick="shareProgress()">📤 Поделиться</button>
+        </div>
+
         <div class="word-display" id="question-text"></div>
         <input type="text" id="answer-input" placeholder="Введите перевод..." autocomplete="off">
-        <!-- Добавили id="check-btn" -->
         <button class="btn" id="check-btn" onclick="checkAnswer()" disabled>Проверить</button>
         <div class="feedback" id="feedback"></div>
     </div>
@@ -243,10 +262,11 @@
         <h2>Результаты</h2>
         <div class="word-display" id="score-text"></div>
         
+        <!-- Кнопка сразу под результатом -->
         <button class="btn btn-share" onclick="shareResult()">📤 Поделиться результатом</button>
 
         <div class="results-list" id="mistakes-list"></div>
-        <button class="btn" onclick="location.reload()">Пройти заново</button>
+        <button class="btn btn-outline" onclick="location.reload()">Пройти заново</button>
     </div>
 </div>
 
@@ -321,10 +341,11 @@
     let currentIndex = 0;
     let score = 0;
     let mistakes = [];
-    
-    // Флаг блокировки, чтобы нельзя было нажать кнопку дважды
     let isLocked = false; 
     
+    // Переменная для хранения текста, который нужно скопировать
+    let textToCopy = ""; 
+
     const answerInput = document.getElementById('answer-input');
     const checkBtn = document.getElementById('check-btn');
 
@@ -353,9 +374,8 @@
         return Array.from(valid);
     }
 
-    // --- СЛУШАТЕЛИ ВВОДА (ЧТОБЫ КНОПКА БЛОКИРОВАЛАСЬ, ЕСЛИ ПУСТО) ---
+    // --- СЛУШАТЕЛИ ВВОДА ---
     answerInput.addEventListener('input', function() {
-        // Если поле пустое или идет проверка, кнопка выключена
         if (this.value.trim() === '' || isLocked) {
             checkBtn.disabled = true;
         } else {
@@ -364,7 +384,6 @@
     });
 
     answerInput.addEventListener('keypress', function (e) {
-        // Если нажат Enter, и кнопка активна (поле не пустое, нет блокировки)
         if (e.key === 'Enter' && !checkBtn.disabled && !isLocked) {
             checkAnswer();
         }
@@ -413,13 +432,12 @@
             return;
         }
 
-        // Разблокируем интерфейс для нового вопроса
         isLocked = false;
         
         document.getElementById('feedback').textContent = '';
         answerInput.value = '';
         answerInput.disabled = false; 
-        checkBtn.disabled = true; // Изначально кнопка выключена, т.к. поле пустое
+        checkBtn.disabled = true; 
         answerInput.focus();
         
         document.getElementById('progress').textContent = `Вопрос ${currentIndex + 1} из ${questions.length}`;
@@ -435,12 +453,10 @@
     }
 
     function checkAnswer() {
-        // Защита: если уже идет проверка или поле пустое, ничего не делаем
         if (isLocked) return;
         const userAnswer = answerInput.value.trim();
         if (!userAnswer) return;
 
-        // Блокируем всё, чтобы нельзя было нажать еще раз во время паузы
         isLocked = true;
         answerInput.disabled = true;
         checkBtn.disabled = true;
@@ -477,7 +493,6 @@
 
         currentIndex++;
         
-        // Ждем 1.5 секунды и загружаем следующий
         setTimeout(() => {
             loadQuestion();
         }, 1500);
@@ -515,25 +530,41 @@
     }
 
     // --- ЛОГИКА ПОДЕЛИТЬСЯ ---
-    function shareResult() {
+    
+    // Централизованная функция для вызова шаринга
+    function executeShare(text) {
+        textToCopy = text;
         const siteUrl = window.location.href;
-        const resultText = `Я прошел тест на тренажере английских слов и получил результат ${score}/${questions.length}! Попробуй и ты:`;
-        const fullText = `${resultText} ${siteUrl}`;
+        const fullText = `${text} ${siteUrl}`;
 
+        // Если это мобильный телефон
         if (navigator.share) {
             navigator.share({
-                title: 'Мой результат в тренажере слов',
-                text: resultText,
+                title: 'Тренажер английских слов',
+                text: text,
                 url: siteUrl
             }).catch((error) => console.log('Ошибка шаринга:', error));
         } else {
+            // Если ПК — открываем модальное окно
             document.getElementById('share-modal').classList.add('active');
             
             const encodedText = encodeURIComponent(fullText);
-            document.getElementById('share-tg').href = `https://t.me/share/url?url=${encodeURIComponent(siteUrl)}&text=${encodeURIComponent(resultText)}`;
+            document.getElementById('share-tg').href = `https://t.me/share/url?url=${encodeURIComponent(siteUrl)}&text=${encodeURIComponent(text)}`;
             document.getElementById('share-wa').href = `https://api.whatsapp.com/send?text=${encodedText}`;
-            document.getElementById('share-vk').href = `https://vk.com/share.php?url=${encodeURIComponent(siteUrl)}&title=${encodeURIComponent(resultText)}`;
+            document.getElementById('share-vk').href = `https://vk.com/share.php?url=${encodeURIComponent(siteUrl)}&title=${encodeURIComponent(text)}`;
         }
+    }
+
+    // Кнопка "Поделиться" во время игры
+    function shareProgress() {
+        const text = `Я прохожу тест на тренажере английских слов! Мой текущий счет: ${score} из ${currentIndex}. Попробуй и ты:`;
+        executeShare(text);
+    }
+
+    // Кнопка "Поделиться" в конце
+    function shareResult() {
+        const text = `Я прошел тест на тренажере английских слов и получил результат ${score}/${questions.length}! Попробуй и ты:`;
+        executeShare(text);
     }
 
     function closeModal() {
@@ -542,7 +573,7 @@
 
     function copyToClipboard() {
         const siteUrl = window.location.href;
-        const fullText = `Я прошел тест на тренажере английских слов и получил результат ${score}/${questions.length}! Попробуй и ты: ${siteUrl}`;
+        const fullText = `${textToCopy} ${siteUrl}`;
         
         navigator.clipboard.writeText(fullText).then(() => {
             const btn = document.getElementById('share-copy');
